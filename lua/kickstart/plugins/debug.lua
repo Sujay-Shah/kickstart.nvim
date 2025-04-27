@@ -9,6 +9,42 @@
 return {
   -- NOTE: Yes, you can install new plugins here!
   'mfussenegger/nvim-dap',
+
+  config = function()
+    local dap = require 'dap'
+
+    -- Adapter for C/C++
+    dap.adapters.cppdbg = {
+      id = 'cppdbg',
+      type = 'executable',
+      command = vim.fn.stdpath 'data' .. '/mason/packages/cpptools/extension/debugAdapters/bin/OpenDebugAD7',
+    }
+
+    dap.configurations.cpp = {
+      {
+        name = 'Launch file',
+        type = 'cppdbg',
+        request = 'launch',
+        program = function()
+          return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+        end,
+        cwd = '${workspaceFolder}',
+        stopAtEntry = true,
+        MIMode = 'gdb',
+        miDebuggerPath = '/opt/homebrew/bin/gdb',
+        setupCommands = {
+          {
+            description = 'Enable pretty-printing for gdb',
+            text = '-enable-pretty-printing',
+            ignoreFailures = false,
+          },
+        },
+      },
+    }
+
+    -- Make C use the same as C++
+    dap.configurations.c = dap.configurations.cpp
+  end,
   -- NOTE: And you can specify dependencies as well
   dependencies = {
     -- Creates a beautiful debugger UI
