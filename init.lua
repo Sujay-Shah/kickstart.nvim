@@ -93,6 +93,46 @@ vim.g.maplocalleader = ' '
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = true
 
+-- ==========================================CUSTOM_SETTING=========================================================
+vim.keymap.set('n', '<leader>cl', function()
+  vim.fn.setreg('+', vim.fn.expand '%:t' .. ':' .. vim.fn.line '.')
+end, { desc = 'Copy file:line to clipboard' })
+
+vim.api.nvim_create_autocmd('BufReadPost', {
+  pattern = '*',
+  callback = function()
+    local current_file = vim.fn.expand '%:p'
+    -- Check if the file is already open in another tab
+    for tab = 1, vim.fn.tabpagenr '$' do
+      local wins = vim.fn.tabpagebuflist(tab)
+      for _, buf in ipairs(wins) do
+        if vim.fn.bufname(buf) == current_file and vim.fn.tabpagenr() ~= tab then
+          return -- File already open in another tab, do nothing
+        end
+      end
+    end
+    -- Open in a new tab
+    vim.cmd('tabnew ' .. current_file)
+  end,
+})
+
+-- Auto-open file in new tab if not already open
+vim.api.nvim_create_autocmd('BufReadPost', {
+  pattern = '*',
+  callback = function()
+    local current_file = vim.fn.expand '%:p'
+    for tab = 1, vim.fn.tabpagenr '$' do
+      local wins = vim.fn.tabpagebuflist(tab)
+      for _, buf in ipairs(wins) do
+        if vim.fn.bufname(buf) == current_file and vim.fn.tabpagenr() ~= tab then
+          return -- Already open in another tab
+        end
+      end
+    end
+    -- Open file in new tab
+    vim.cmd('tabnew ' .. current_file)
+  end,
+})
 -- [[ Setting options ]]
 -- See `:help vim.opt`
 -- NOTE: You can change these options as you wish!
@@ -957,6 +997,49 @@ require('lazy').setup({
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
   },
   --=========================================================CUSTOM PLUGINS======================================================================
+  -- Add bufferline.nvim plugin
+  {
+    'akinsho/bufferline.nvim',
+    version = '*',
+    dependencies = 'nvim-tree/nvim-web-devicons', -- Optional but recommended for icons
+    config = function()
+      require('bufferline').setup {
+        options = {
+          -- Enable close button (x mark)
+          close_command = 'bdelete! %d', -- Command to run when clicking the close button
+          right_mouse_command = 'bdelete! %d', -- Command on right-click
+          diagnostics = 'nvim_lsp', -- Integrates with diagnostics
+
+          -- Style the close button and tabs
+          show_close_icon = true, -- Show the close button
+          close_icon = '✕', -- You can use 'x', '✖', or any character
+          modified_icon = '●', -- Icon for modified buffers
+
+          -- Other useful settings
+          always_show_bufferline = true,
+          separator_style = 'thin', -- Options: "slant", "thick", "thin"
+          offsets = {
+            {
+              filetype = 'NvimTree', -- Offsets bufferline when file explorer is open
+              text = 'File Explorer',
+              highlight = 'Directory',
+              separator = true,
+            },
+          },
+          hover = {
+            enabled = true,
+            delay = 200,
+            reveal = { 'close' }, -- Show close button on hover
+          },
+        },
+      }
+
+      -- Optional keymaps for managing tabs/buffers
+      vim.keymap.set('n', '<leader>x', '<Cmd>bdelete!<CR>', { desc = 'Close current buffer' })
+      vim.keymap.set('n', '<S-h>', '<Cmd>BufferLineCyclePrev<CR>', { desc = 'Previous buffer' })
+      vim.keymap.set('n', '<S-l>', '<Cmd>BufferLineCycleNext<CR>', { desc = 'Next buffer' })
+    end,
+  },
   {
     'nvim-tree/nvim-tree.lua',
     -- dependencies = { 'nvim-tree/nvim-web-devicons' }, -- optional, for file icons
