@@ -98,24 +98,6 @@ vim.keymap.set('n', '<leader>cl', function()
   vim.fn.setreg('+', vim.fn.expand '%:t' .. ':' .. vim.fn.line '.')
 end, { desc = 'Copy file:line to clipboard' })
 
-vim.api.nvim_create_autocmd('BufReadPost', {
-  pattern = '*',
-  callback = function()
-    local current_file = vim.fn.expand '%:p'
-    -- Check if the file is already open in another tab
-    for tab = 1, vim.fn.tabpagenr '$' do
-      local wins = vim.fn.tabpagebuflist(tab)
-      for _, buf in ipairs(wins) do
-        if vim.fn.bufname(buf) == current_file and vim.fn.tabpagenr() ~= tab then
-          return -- File already open in another tab, do nothing
-        end
-      end
-    end
-    -- Open in a new tab
-    vim.cmd('tabnew ' .. current_file)
-  end,
-})
-
 -- Auto-open file in new tab if not already open
 vim.api.nvim_create_autocmd('BufReadPost', {
   pattern = '*',
@@ -133,6 +115,9 @@ vim.api.nvim_create_autocmd('BufReadPost', {
     vim.cmd('tabnew ' .. current_file)
   end,
 })
+
+--===================================================================================================
+
 -- [[ Setting options ]]
 -- See `:help vim.opt`
 -- NOTE: You can change these options as you wish!
@@ -1040,22 +1025,71 @@ require('lazy').setup({
       vim.keymap.set('n', '<S-l>', '<Cmd>BufferLineCycleNext<CR>', { desc = 'Next buffer' })
     end,
   },
+
   {
     'nvim-tree/nvim-tree.lua',
-    -- dependencies = { 'nvim-tree/nvim-web-devicons' }, -- optional, for file icons
+    -- dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
-      require('nvim-tree').setup {}
-      -- Optional: set keymaps
-      vim.keymap.set('n', '<C-n>', ':NvimTreeToggle<CR>', { desc = 'Toggle File Explorer' })
+      local api = require 'nvim-tree.api'
+      local nvim_tree_open = true -- Tracks manual toggle state
+
+      -- Setup NvimTree
+      require('nvim-tree').setup {
+        hijack_netrw = true,
+        sync_root_with_cwd = true,
+        respect_buf_cwd = true,
+        update_focused_file = {
+          enable = true,
+          update_root = false,
+        },
+        view = {
+          adaptive_size = true,
+          preserve_window_proportions = true,
+        },
+        actions = {
+          open_file = {
+            quit_on_open = false, -- Keep tree open when opening a file
+          },
+        },
+      }
+
+      -- Manual toggle overrides tracking variable
+      vim.keymap.set('n', '<C-n>', function()
+        nvim_tree_open = not api.tree.is_visible()
+        api.tree.toggle()
+      end, { desc = 'Toggle File Explorer' })
+
+      -- Reopen NvimTree if it was open before buffer change
+      vim.api.nvim_create_autocmd('BufEnter', {
+        callback = function()
+          if nvim_tree_open and not api.tree.is_visible() then
+            api.tree.open()
+            api.tree.find_file { open = true, focus = false }
+          elseif api.tree.is_visible() then
+            api.tree.find_file { open = true, focus = false }
+          end
+        end,
+      })
+
+      -- Reopen NvimTree if it was open before tab switch
+      vim.api.nvim_create_autocmd('TabEnter', {
+        callback = function()
+          if nvim_tree_open and not api.tree.is_visible() then
+            api.tree.open()
+            api.tree.find_file { open = true, focus = false }
+          end
+        end,
+      })
     end,
   },
-  {
+  --[[ {
+      {
     'rmagatti/auto-session',
     opts = {
       log_level = 'error',
       auto_session_suppress_dirs = { '~/', '/' },
     },
-  },
+  },]]
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
   -- place them in the correct locations.
