@@ -1048,8 +1048,15 @@ require('lazy').setup({
         },
         actions = {
           open_file = {
-            quit_on_open = false, -- Keep tree open when opening a file
+            quit_on_open = false,
+            window_picker = {
+              enable = false, -- 👈 THIS ensures focus shifts to the opened buffer
+            }, -- Keep tree open when opening a file
           },
+        },
+        git = {
+          enable = true, -- keep git status icons
+          ignore = false, -- do NOT ignore files from .gitignore
         },
       }
 
@@ -1059,7 +1066,7 @@ require('lazy').setup({
         api.tree.toggle()
       end, { desc = 'Toggle File Explorer' })
 
-      -- Reopen NvimTree if it was open before buffer change
+      --[[ Reopen NvimTree if it was open before buffer change
       vim.api.nvim_create_autocmd('BufEnter', {
         callback = function()
           if nvim_tree_open and not api.tree.is_visible() then
@@ -1079,7 +1086,7 @@ require('lazy').setup({
             api.tree.find_file { open = true, focus = false }
           end
         end,
-      })
+      })]]
     end,
   },
   --[[ {
