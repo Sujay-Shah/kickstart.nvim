@@ -982,35 +982,95 @@ require('lazy').setup({
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
   },
   --=========================================================CUSTOM PLUGINS======================================================================
-  -- Add bufferline.nvim plugin
+  -- Add bufferline.nvim plugindd this block for nvim-ufo
+  {
+    'kevinhwang91/nvim-ufo',
+    dependencies = {
+      'kevinhwang91/promise-async', -- required dependency
+    },
+    config = function()
+      -- Minimal UFO Configuration
+      vim.o.foldcolumn = '1' -- '0' is not bad
+      vim.o.foldlevel = 99 -- Using ufo provider needs a large value
+      vim.o.foldlevelstart = 99
+      vim.o.foldenable = true
+
+      -- Remap zR and zM to ufo's functions to keep foldlevel
+      vim.keymap.set('n', 'zR', require('ufo').openAllFolds)
+      vim.keymap.set('n', 'zM', require('ufo').closeAllFolds)
+
+      -- Add capabilities for LSP folding
+      local capabilities = vim.lsp.protocol.make_client_capabilities()
+      capabilities.textDocument.foldingRange = {
+        dynamicRegistration = false,
+        lineFoldingOnly = true,
+      }
+
+      -- Integrate with lspconfig to enable folding capabilities
+      -- This assumes you are using the default kickstart lsp setup,
+      -- which defines a function `on_attach`
+      local lsp_on_attach = function(client, bufnr)
+        -- your existing kickstart on_attach logic (e.g., keymaps)
+        require('kickstart.plugins.lsp.on_attach').on_attach(client, bufnr)
+
+        -- Enable folding for LSP
+        if client.server_capabilities.foldingRange then
+          require('ufo').attach_lsp(client, bufnr)
+        end
+      end
+
+      -- Update the lspconfig setup to use the new on_attach
+
+      --require('lspconfig').lua_ls.setup({
+      vim.lsp.config('lua_ls', {
+        -- ... other settings
+        on_attach = lsp_on_attach, -- Use the new on_attach
+        capabilities = capabilities, -- Add folding capabilities
+      })
+
+      -- You would repeat the setup for any other language servers you use,
+      -- or modify the generic lspconfig setup logic in kickstart.nvim
+      -- to apply `lsp_on_attach` and `capabilities` to all servers.
+
+      -- Final ufo setup call
+      require('ufo').setup {
+        -- You can configure your provider selector here if you don't want
+        -- the default (which uses lsp, then treesitter/indent as fallback)
+        -- provider_selector = function(bufnr, filetype, buftype)
+        --   return { 'lsp', 'treesitter', 'indent' }
+        -- end,
+      }
+    end,
+  },
+
   {
     'lukas-reineke/indent-blankline.nvim',
     main = 'ibl',
     opts = {},
     config = function()
       local highlight = {
-       "RainbowRed",
-       "RainbowYellow",
-       "RainbowBlue",
-       "RainbowOrange",
-       "RainbowGreen",
-       "RainbowViolet",
-       "RainbowCyan",
+        'RainbowRed',
+        'RainbowYellow',
+        'RainbowBlue',
+        'RainbowOrange',
+        'RainbowGreen',
+        'RainbowViolet',
+        'RainbowCyan',
       }
 
-      local hooks = require("ibl.hooks")
-    --Create the highlight groups in the highlight setup hook
-       hooks.register(hooks.type.HIGHLIGHT_SETUP,function()
-       vim.api.nvim_set_hl(0, "RainbowRed", { fg = "#E06C75" })
-        vim.api.nvim_set_hl(0,"RainbowYellow",{fg="#E5C07B"})
-        vim.api.nvim_set_hl(0,"RainbowBlue",{fg="#61AFEF"})
-        vim.api.nvim_set_hl(0,"RainbowOrange",{fg="#D19A66"})
-        vim.api.nvim_set_hl(0,"RainbowGreen",{fg="#98C379"})
-        vim.api.nvim_set_hl(0,"RainbowViolet",{fg="#C678DD"})
-        vim.api.nvim_set_hl(0, "RainbowCyan", {fg = "#56B6C2" })
+      local hooks = require 'ibl.hooks'
+      --Create the highlight groups in the highlight setup hook
+      hooks.register(hooks.type.HIGHLIGHT_SETUP, function()
+        vim.api.nvim_set_hl(0, 'RainbowRed', { fg = '#E06C75' })
+        vim.api.nvim_set_hl(0, 'RainbowYellow', { fg = '#E5C07B' })
+        vim.api.nvim_set_hl(0, 'RainbowBlue', { fg = '#61AFEF' })
+        vim.api.nvim_set_hl(0, 'RainbowOrange', { fg = '#D19A66' })
+        vim.api.nvim_set_hl(0, 'RainbowGreen', { fg = '#98C379' })
+        vim.api.nvim_set_hl(0, 'RainbowViolet', { fg = '#C678DD' })
+        vim.api.nvim_set_hl(0, 'RainbowCyan', { fg = '#56B6C2' })
       end)
 
-      require("ibl").setup {
+      require('ibl').setup {
         indent = { highlight = highlight },
       }
     end,
